@@ -122,19 +122,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn megasena_simples_custa_cinco_reais() {
+    fn megasena_simples_custa_seis_reais() {
         let j = Jogo::Megasena { total_dezenas: 6 };
         assert_eq!(j.preco_centavos(), 600);
     }
 
     #[test]
-    fn megasena_oito_dezenas_custa_cento_e_quarenta() {
+    fn megasena_oito_dezenas_custa_cento_e_sessenta_e_oito_reais() {
         let j = Jogo::Megasena { total_dezenas: 8 };
-        assert_eq!(j.preco_centavos(), 16800); // C(8,6)=28 * 500
+        assert_eq!(j.preco_centavos(), 16800); // C(8,6)=28 * 600
     }
 
     #[test]
-    fn quina_minima_custa_dois_e_cinquenta() {
+    fn quina_oito_dezenas_custa_cento_e_sessenta_e_oito_reais() {
+        let j = Jogo::Quina { total_dezenas: 8 };
+        assert_eq!(j.preco_centavos(), 16800);
+    }
+
+    #[test]
+    fn quina_minima_custa_tres_reais() {
         let j = Jogo::Quina { total_dezenas: 5 };
         assert_eq!(j.preco_centavos(), 300);
     }
