@@ -98,15 +98,15 @@ impl Sorteio {
     pub fn sortear(&self) -> Vec<u8> {
         match self.jogo {
             Jogo::Lotomania => Self::dezenas(50, 100),
-            Jogo::Megasena { total_dezenas } => Self::dezenas(usize::from(total_dezenas), 60),
-            Jogo::Quina { total_dezenas } => Self::dezenas(usize::from(total_dezenas), 80),
+            Jogo::Megasena { total_dezenas } => Self::dezenas(total_dezenas, 60),
+            Jogo::Quina { total_dezenas } => Self::dezenas(total_dezenas, 80),
         }
     }
 
     #[must_use]
-    pub fn dezenas(total_dezenas: usize, dezena_maxima: u8) -> Vec<u8> {
+    pub fn dezenas(total_dezenas: u8, dezena_maxima: u8) -> Vec<u8> {
         let mut rng = rand::rng();
-        let mut sorteio = (1..=dezena_maxima).sample(&mut rng, total_dezenas);
+        let mut sorteio = (1..=dezena_maxima).sample(&mut rng, usize::from(total_dezenas));
         sorteio.sort_unstable();
         sorteio
     }
