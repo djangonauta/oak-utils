@@ -29,13 +29,16 @@ fn validar_dezenas_quina(total_dezenas: &str) -> Result<u8, String> {
 
 #[derive(Debug, Subcommand)]
 pub enum Jogo {
-    Lotomania,
+    Lotomania {
+        #[arg(short, long)]
+        espelho: bool,
+    },
     Megasena {
-        #[arg(value_parser = validar_dezenas_megasena)]
+        #[arg(value_parser = validar_dezenas_megasena, default_value_t = 6)]
         total_dezenas: u8,
     },
     Quina {
-        #[arg(value_parser = validar_dezenas_quina)]
+        #[arg(value_parser = validar_dezenas_quina, default_value_t = 5)]
         total_dezenas: u8,
     },
 }
@@ -44,7 +47,7 @@ impl Jogo {
     #[must_use]
     pub const fn nome(&self) -> &'static str {
         match self {
-            Self::Lotomania => "lotomania",
+            Self::Lotomania { .. } => "lotomania",
             Self::Megasena { .. } => "megasena",
             Self::Quina { .. } => "quina",
         }
@@ -53,7 +56,7 @@ impl Jogo {
     #[must_use]
     pub const fn preco_base_centavos(&self) -> u32 {
         match self {
-            Self::Lotomania | Self::Quina { .. } => 300,
+            Self::Lotomania { .. } | Self::Quina { .. } => 300,
             Self::Megasena { .. } => 600,
         }
     }
@@ -61,7 +64,7 @@ impl Jogo {
     #[must_use]
     pub const fn configurar_dezenas(&self) -> (u8, u8) {
         match self {
-            Self::Lotomania => (50, 50),
+            Self::Lotomania { .. } => (50, 50),
             Self::Megasena { total_dezenas } => (*total_dezenas, 6),
             Self::Quina { total_dezenas } => (*total_dezenas, 5),
         }
@@ -72,6 +75,11 @@ impl Jogo {
         let (total, minimo) = self.configurar_dezenas();
         let apostas = combinacoes(u64::from(total), u64::from(minimo));
         apostas * u64::from(self.preco_base_centavos())
+    }
+
+    #[must_use]
+    pub const fn is_lotomania_espelho(&self) -> bool {
+        matches!(self, Self::Lotomania { espelho: true })
     }
 }
 
@@ -97,18 +105,29 @@ impl Sorteio {
     #[must_use]
     pub fn sortear(&self) -> Vec<u8> {
         match self.jogo {
-            Jogo::Lotomania => Self::dezenas(50, 100),
+            Jogo::Lotomania { .. } => Self::dezenas(50, 100),
             Jogo::Megasena { total_dezenas } => Self::dezenas(total_dezenas, 60),
             Jogo::Quina { total_dezenas } => Self::dezenas(total_dezenas, 80),
         }
     }
 
-    #[must_use]
-    pub fn dezenas(total_dezenas: u8, dezena_maxima: u8) -> Vec<u8> {
+    fn dezenas(total_dezenas: u8, dezena_maxima: u8) -> Vec<u8> {
         let mut rng = rand::rng();
         let mut sorteio = (1..=dezena_maxima).sample(&mut rng, usize::from(total_dezenas));
         sorteio.sort_unstable();
         sorteio
+    }
+
+    #[must_use]
+    pub fn sortear_espelho(sorteadas: &[u8]) -> Vec<u8> {
+        (1..=100)
+            .filter(|dezena| !sorteadas.contains(dezena))
+            .collect()
+    }
+
+    #[must_use]
+    pub const fn is_lotomania_espelho(&self) -> bool {
+        self.jogo.is_lotomania_espelho()
     }
 }
 
@@ -119,6 +138,8 @@ pub fn formatar_reais(centavos: u64) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -169,7 +190,7 @@ mod tests {
 
     #[test]
     fn sorteio_lotomania_respeita_limite_superior() {
-        let r = Sorteio::new(Jogo::Lotomania).sortear();
+        let r = Sorteio::new(Jogo::Lotomania { espelho: false }).sortear();
         assert!(r.iter().all(|&d| (1..=100).contains(&d)));
     }
 
@@ -177,5 +198,16 @@ mod tests {
     fn sorteio_retorna_ordenado() {
         let r = Sorteio::new(Jogo::Quina { total_dezenas: 10 }).sortear();
         assert!(r.windows(2).all(|w| w[0] < w[1]));
+    }
+
+    #[test]
+    fn sorteio_espelho_lotomania_disjunto() {
+        let sorteio = Sorteio::new(Jogo::Lotomania { espelho: true });
+        let s = sorteio.sortear();
+        let e = Sorteio::sortear_espelho(&s);
+
+        let h1: HashSet<u8> = s.into_iter().collect();
+        let h2: HashSet<u8> = e.into_iter().collect();
+        assert!(h1.is_disjoint(&h2));
     }
 }

@@ -5,17 +5,27 @@ use oak_utils::loterias::{Jogo, Sorteio, formatar_reais};
 #[command(version, about, long_about=None)]
 struct Cli {
     #[command(subcommand)]
-    jogo: Option<Jogo>,
+    jogo: Jogo,
 }
 
 fn main() {
     let cli = Cli::parse();
-    if let Some(jogo) = cli.jogo {
-        let nome = jogo.nome();
-        let preco = jogo.preco_centavos();
+    let nome = cli.jogo.nome();
+    let preco = cli.jogo.preco_centavos();
 
-        let sorteadas = Sorteio::new(jogo).sortear();
-        println!("Dezenas sorteadas para o jogo {nome}:\n{sorteadas:?}");
+    let sorteio = Sorteio::new(cli.jogo);
+    let sorteadas = sorteio.sortear();
+    println!("Dezenas sorteadas para o jogo {nome}:");
+    println!("{sorteadas:?}");
+    println!();
+
+    if sorteio.is_lotomania_espelho() {
+        let espelho = Sorteio::sortear_espelho(&sorteadas);
+        println!("Dezenas sorteadas para o jogo {nome} (espelho):");
+        println!("{espelho:?}");
+        println!();
+        println!("Preço total: {}.", formatar_reais(2 * preco));
+    } else {
         println!("Preço total: {}.", formatar_reais(preco));
     }
 }
